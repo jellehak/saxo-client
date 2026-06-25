@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Saxo Client Demo</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style>
+    body {
+      padding: 2rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .section {
+      background: var(--form-element-background-color);
+      padding: 1.5rem;
+      border-radius: var(--border-radius);
+    }
+    .results {
+      background: var(--code-background-color);
+      padding: 1rem;
+      border-radius: var(--border-radius);
+      font-family: monospace;
+      font-size: 0.9rem;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import { createApp, ref, onMounted, watch } from 'vue';
+    import { createClient } from '../index.js';
+
+    const app = createApp({
+      setup() {
+        const token = ref('');
+        const uic = ref('');
+        const quantity = ref(1);
+        const results = ref('');
+        const loading = ref(false);
+
+        onMounted(() => {
+          const savedToken = localStorage.getItem('saxo-token');
+          if (savedToken) {
+            token.value = savedToken;
+          }
+        });
+
+        watch(token, (newToken) => {
+          if (newToken) {
+            localStorage.setItem('saxo-token', newToken);
+          } else {
+            localStorage.removeItem('saxo-token');
+          }
+        });
+
+        const logResult = (data) => {
+          results.value = JSON.stringify(data, null, 2);
+        };
+
+        const handleError = (error) => {
+          results.value = `Error: ${error.message}`;
+        };
+
+        const executeAction = async (action) => {
+          if (!token.value) {
+            results.value = 'Please enter a Bearer token';
+            return;
+          }
+
+          loading.value = true;
+          try {
+            const client = createClient(token.value);
+            let result;
+
+            switch (action) {
+              case 'buy':
+                if (!uic.value) {
+                  throw new Error('UIC is required');
+                }
+                result = await client.buy('default', {
+                  Uic: parseInt(uic.value),
+                  Amount: parseInt(quantity.value),
+                });
+                break;
+
+              case 'sell':
+                if (!uic.value) {
+                  throw new Error('UIC is required');
+                }
+                result = await client.sell('default', {
+                  Uic: parseInt(uic.value),
+                  Amount: parseInt(quantity.value),
+                });
+                break;
+
+              case 'portfolio':
+                result = await client.listPortfolio();
+                break;
+
+              case 'instrument':
+                if (!uic.value) {
+                  throw new Error('UIC is required');
+                }
+                result = await client.fetchInstrument(parseInt(uic.value));
+                break;
+
+              case 'chart':
+                if (!uic.value) {
+                  throw new Error('UIC is required');
+                }
+                result = await client.fetchChart(parseInt(uic.value), 'FxSpot', {
+                  HistoryLength: 20,
+                });
+                break;
+
+              default:
+                throw new Error('Unknown action');
+            }
+
+            logResult(result);
+          } catch (error) {
+            handleError(error);
+          } finally {
+            loading.value = false;
+          }
+        };
+
+        return {
+          token,
+          uic,
+          quantity,
+          results,
+          loading,
+          executeAction,
+        };
+      },
+
+      template: `
+        <main class="container">
+          <h1>Saxo Client Demo</h1>
+          <p>Minimal Saxo API client for trading operations.</p>
+
+          <section class="section">
+            <h2>Configuration</h2>
+            <label>
+              Bearer Token
+              <input
+                v-model="token"
+                type="password"
+                placeholder="Your Saxo API token"
+              />
+            </label>
+            <label>
+              UIC (Instrument ID)
+              <input
+                v-model="uic"
+                type="number"
+                placeholder="e.g., 17 for EURUSD"
+              />
+            </label>
+            <label>
+              Quantity
+              <input
+                v-model="quantity"
+                type="number"
+                placeholder="1"
+              />
+            </label>
+          </section>
+
+          <section class="section">
+            <h2>Actions</h2>
+            <div class="grid">
+              <button
+                @click="executeAction('buy')"
+                :disabled="loading"
+                aria-busy="loading"
+              >
+                Buy
+              </button>
+              <button
+                @click="executeAction('sell')"
+                :disabled="loading"
+                aria-busy="loading"
+              >
+                Sell
+              </button>
+              <button
+                @click="executeAction('portfolio')"
+                :disabled="loading"
+                aria-busy="loading"
+              >
+                List Portfolio
+              </button>
+              <button
+                @click="executeAction('instrument')"
+                :disabled="loading"
+                aria-busy="loading"
+              >
+                Fetch Instrument
+              </button>
+              <button
+                @click="executeAction('chart')"
+                :disabled="loading"
+                aria-busy="loading"
+              >
+                Fetch Chart
+              </button>
+            </div>
+          </section>
+
+          <section class="section">
+            <h2>Results</h2>
+            <div class="results">{{ results || 'Results will appear here...' }}</div>
+          </section>
+        </main>
+      `,
+    });
+
+    app.mount('#app');
+  </script>
+</body>
+</html>
