@@ -26,13 +26,13 @@ import { createClient } from './index.js';
 const client = createClient('your-bearer-token');
 
 // Buy
-const buyOrder = await client.buy('account-key', {
+const buyOrder = await client.buy({
   Uic: 17, // EURUSD
   Amount: 100000,
 });
 
 // Sell
-const sellOrder = await client.sell('account-key', {
+const sellOrder = await client.sell({
   Uic: 17,
   Amount: 100000,
 });
@@ -55,8 +55,8 @@ Open `client/index.html` in your browser. It provides a simple Vue.js 3 interfac
 
 ## API Methods
 
-- `buy(accountKey, orderData)` - Place a buy order
-- `sell(accountKey, orderData)` - Place a sell order
+- `buy(orderData)` - Place a buy order (AccountKey extracted from token)
+- `sell(orderData)` - Place a sell order (AccountKey extracted from token)
 - `listPortfolio(fieldGroups?)` - Get portfolio information (ClientKey extracted from token)
 - `fetchInstrument(uic, assetType?)` - Get instrument details
 - `fetchChart(uic, assetType?, params?)` - Get chart data

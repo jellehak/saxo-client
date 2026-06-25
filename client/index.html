@@ -100,7 +100,7 @@
                 if (!uic.value) {
                   throw new Error('UIC is required');
                 }
-                result = await client.buy('default', {
+                result = await client.buy({
                   Uic: parseInt(uic.value),
                   Amount: parseInt(quantity.value),
                 });
@@ -110,7 +110,7 @@
                 if (!uic.value) {
                   throw new Error('UIC is required');
                 }
-                result = await client.sell('default', {
+                result = await client.sell({
                   Uic: parseInt(uic.value),
                   Amount: parseInt(quantity.value),
                 });

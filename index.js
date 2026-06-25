@@ -75,18 +75,18 @@ const createClient = (token) => {
   };
 
   return {
-    buy: async (accountKey, orderData) => {
+    buy: async (orderData) => {
       return request('POST', '/trade/v2/orders', {
-        AccountKey: accountKey,
+        AccountKey: clientKey,
         OrderType: 'Market',
         BuySell: 'Buy',
         ...orderData,
       });
     },
 
-    sell: async (accountKey, orderData) => {
+    sell: async (orderData) => {
       return request('POST', '/trade/v2/orders', {
-        AccountKey: accountKey,
+        AccountKey: clientKey,
         OrderType: 'Market',
         BuySell: 'Sell',
         ...orderData,
