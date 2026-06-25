@@ -120,10 +120,11 @@ const createClient = (token) => {
     },
 
     fetchChart: async (uic, assetType = 'FxSpot', params = {}) => {
-      const url = `https://gateway.saxobank.com/sim/chart/v3/charts`;
+      const url = `/chart/v3/charts`;
       return request('GET', url, null, {
         Uic: uic,
         AssetType: assetType,
+        Horizon: '1', // Minimal tick, a day = 1440
         ...params,
       });
     },

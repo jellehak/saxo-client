@@ -62,6 +62,7 @@ Open `client/index.html` in your browser. It provides a simple Vue.js 3 interfac
 - **Search** - Find instruments by keywords
 - **Buy** - Place buy orders
 - **Sell** - Place sell orders
+- **Chart** - Get chart data for instruments
 - **Portfolio** - View your positions
 
 ## API Methods
