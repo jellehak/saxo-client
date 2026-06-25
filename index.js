@@ -80,6 +80,9 @@ const createClient = (token) => {
         AccountKey: clientKey,
         OrderType: 'Market',
         BuySell: 'Buy',
+        AssetType: 'FxSpot',
+        OrderDuration: { DurationType: 'DayOrder' },
+        ManualOrder: true,
         ...orderData,
       });
     },
@@ -89,6 +92,9 @@ const createClient = (token) => {
         AccountKey: clientKey,
         OrderType: 'Market',
         BuySell: 'Sell',
+        AssetType: 'FxSpot',
+        OrderDuration: { DurationType: 'DayOrder' },
+        ManualOrder: true,
         ...orderData,
       });
     },
@@ -106,12 +112,26 @@ const createClient = (token) => {
       });
     },
 
+    fetchTradingConditions: async (uic, assetType = 'FxSpot') => {
+      return request('GET', `/ref/v1/instruments/${uic}/details`, null, {
+        AssetTypes: assetType,
+        FieldGroups: 'MinimumTradeSize,PipSize,ContractSize',
+      });
+    },
+
     fetchChart: async (uic, assetType = 'FxSpot', params = {}) => {
       const url = `https://gateway.saxobank.com/sim/chart/v3/charts`;
       return request('GET', url, null, {
         Uic: uic,
         AssetType: assetType,
         ...params,
+      });
+    },
+
+    searchInstruments: async (keywords, assetTypes = 'FxSpot') => {
+      return request('GET', '/ref/v1/instruments', null, {
+        Keywords: keywords,
+        AssetTypes: assetTypes,
       });
     },
   };

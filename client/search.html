@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search Instruments - Saxo Client</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style>
+    body {
+      padding: 2rem;
+    }
+    .section {
+      background: var(--form-element-background-color);
+      padding: 1.5rem;
+      border-radius: var(--border-radius);
+      margin-bottom: 1.5rem;
+    }
+    .results {
+      background: var(--code-background-color);
+      padding: 1rem;
+      border-radius: var(--border-radius);
+      font-family: monospace;
+      font-size: 0.9rem;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    nav {
+      margin-bottom: 2rem;
+    }
+    nav a {
+      margin-right: 1rem;
+    }
+    .search-results {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .result-card {
+      background: var(--form-element-background-color);
+      padding: 1rem;
+      border-radius: var(--border-radius);
+      border: 1px solid var(--border-color);
+    }
+    .result-card h3 {
+      margin-top: 0;
+      font-size: 1.1rem;
+    }
+    .result-card p {
+      margin: 0.5rem 0;
+      font-size: 0.9rem;
+    }
+    .uic-badge {
+      background: var(--form-element-background-color);
+      padding: 0.25rem 0.75rem;
+      border-radius: var(--border-radius);
+      font-weight: bold;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import { createApp, ref, onMounted, watch } from 'vue';
+    import { createClient } from '../index.js';
+
+    const app = createApp({
+      setup() {
+        const token = ref('');
+        const searchQuery = ref('');
+        const assetType = ref('FxSpot');
+        const results = ref([]);
+        const rawResults = ref('');
+        const loading = ref(false);
+        const viewMode = ref('grid'); // 'grid' or 'json'
+
+        onMounted(() => {
+          const savedToken = localStorage.getItem('saxo-token');
+          if (savedToken) {
+            token.value = savedToken;
+          }
+        });
+
+        watch(token, (newToken) => {
+          if (newToken) {
+            localStorage.setItem('saxo-token', newToken);
+          } else {
+            localStorage.removeItem('saxo-token');
+          }
+        });
+
+        const handleSearch = async () => {
+          if (!token.value) {
+            rawResults.value = 'Please enter a Bearer token';
+            results.value = [];
+            return;
+          }
+
+          if (!searchQuery.value) {
+            rawResults.value = 'Please enter a search query';
+            results.value = [];
+            return;
+          }
+
+          loading.value = true;
+          try {
+            const client = createClient(token.value);
+            const result = await client.searchInstruments(searchQuery.value, assetType.value);
+            
+            rawResults.value = JSON.stringify(result, null, 2);
+            
+            if (result && result.Data && Array.isArray(result.Data)) {
+              results.value = result.Data;
+            } else {
+              results.value = [];
+            }
+          } catch (error) {
+            rawResults.value = `Error: ${error.message}`;
+            results.value = [];
+          } finally {
+            loading.value = false;
+          }
+        };
+
+        return {
+          token,
+          searchQuery,
+          assetType,
+          results,
+          rawResults,
+          loading,
+          viewMode,
+          handleSearch,
+        };
+      },
+
+      template: `
+        <main class="container">
+          <nav>
+            <a href="index.html">← Back</a>
+          </nav>
+
+          <h1>Search Instruments</h1>
+          <p>Search for financial instruments by keywords.</p>
+
+          <section class="section">
+            <h2>Configuration</h2>
+            <label>
+              Bearer Token
+              <input
+                v-model="token"
+                type="password"
+                placeholder="Your Saxo API token"
+              />
+            </label>
+            <label>
+              Search Query
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="e.g., EURUSD, Apple, S&P 500"
+              />
+            </label>
+            <label>
+              Asset Type
+              <select v-model="assetType">
+                <option value="FxSpot">FX Spot</option>
+                <option value="Stock">Stock</option>
+                <option value="CfdOnStock">CFD on Stock</option>
+                <option value="CfdOnIndex">CFD on Index</option>
+                <option value="CfdOnFutures">CFD on Futures</option>
+              </select>
+            </label>
+          </section>
+
+          <button
+            @click="handleSearch"
+            :disabled="loading"
+            aria-busy="loading"
+          >
+            Search
+          </button>
+
+          <section class="section" style="margin-top: 1.5rem;">
+            <h2>Results</h2>
+            <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+              <label>
+                <input
+                  type="radio"
+                  v-model="viewMode"
+                  value="grid"
+                />
+                Grid View
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  v-model="viewMode"
+                  value="json"
+                />
+                JSON View
+              </label>
+            </div>
+
+            <div v-if="viewMode === 'json'" class="results">
+              {{ rawResults || 'Results will appear here...' }}
+            </div>
+
+            <div v-if="viewMode === 'grid'">
+              <div v-if="results.length === 0" class="results" style="max-height: none;">
+                No results yet. Try searching for an instrument.
+              </div>
+              <div v-else class="search-results">
+                <div v-for="result in results" :key="result.Uic" class="result-card">
+                  <h3>{{ result.Symbol || result.Name }}</h3>
+                  <p><strong>UIC:</strong> <span class="uic-badge">{{ result.Uic || result.Identifier }}</span></p>
+                  <p><strong>Name:</strong> {{ result.Name }}</p>
+                  <p v-if="result.Symbol"><strong>Symbol:</strong> {{ result.Symbol }}</p>
+                  <p v-if="result.AssetType"><strong>Asset Type:</strong> {{ result.AssetType }}</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </main>
+      `,
+    });
+
+    app.mount('#app');
+  </script>
+</body>
+</html>
