@@ -3,6 +3,32 @@
 import { ArgumentParser } from 'argparse';
 import { createClient } from '../index.js';
 
+// Generic table formatter
+const formatTable = (data, columns) => {
+  if (!data || data.length === 0) {
+    return 'No data.';
+  }
+
+  const rows = data.map(item =>
+    columns.reduce((row, col) => {
+      let value = item[col.key];
+      if (col.format) {
+        value = col.format(value);
+      }
+      return { ...row, [col.key]: value };
+    }, {})
+  );
+
+  const header = columns.map(col => col.label.padEnd(col.width)).join('');
+  const separator = '─'.repeat(columns.reduce((sum, col) => sum + col.width, 0));
+  
+  const lines = rows.map(row =>
+    columns.map(col => String(row[col.key] || '—').padEnd(col.width)).join('')
+  );
+
+  return [header, separator, ...lines].join('\n');
+};
+
 const parser = new ArgumentParser({
   description: 'Minimal Saxo API CLI',
   add_help: true,
@@ -111,7 +137,7 @@ async function main() {
 
       case 'buy': {
         let assetType = args.asset_type;
-        if (assetType === 'FxSpot') {
+        if (!assetType) {
           // Try to auto-detect if using default
           try {
             assetType = await client.detectAssetType(String(args.uic));
@@ -131,7 +157,7 @@ async function main() {
 
       case 'sell': {
         let assetType = args.asset_type;
-        if (assetType === 'FxSpot') {
+        if (!assetType) {
           // Try to auto-detect if using default
           try {
             assetType = await client.detectAssetType(String(args.uic));
@@ -164,61 +190,71 @@ async function main() {
           const base = pos.NetPositionBase;
           const view = pos.NetPositionView;
           
-          const symbol = displayFormat.Symbol;
-          const description = displayFormat.Description;
-          const amount = base.Amount;
-          const assetType = base.AssetType;
-          const currentPrice = view.CurrentPrice || '—';
-          const marketValue = view.MarketValue ?? view.MarketValueOpen ?? 0;
-          const pnl = view.ProfitLossOnTrade ?? 0;
-          const pnlPercent = view.InstrumentPriceDayPercentChange ?? 0;
-          
           return {
-            symbol,
-            description,
-            amount,
-            assetType,
-            currentPrice: typeof currentPrice === 'number' ? currentPrice.toFixed(5) : currentPrice,
-            marketValue: marketValue.toFixed(2),
-            pnl: pnl.toFixed(2),
-            pnlPercent: pnlPercent.toFixed(2),
+            symbol: displayFormat.Symbol,
+            description: displayFormat.Description,
+            amount: base.Amount,
+            assetType: base.AssetType,
+            currentPrice: typeof view.CurrentPrice === 'number' ? view.CurrentPrice.toFixed(5) : '—',
+            marketValue: (view.MarketValue ?? view.MarketValueOpen ?? 0).toFixed(2),
+            pnl: (view.ProfitLossOnTrade ?? 0).toFixed(2),
+            pnlPercent: (view.InstrumentPriceDayPercentChange ?? 0).toFixed(2),
           };
         });
 
-        // Print header
-        console.log(
-          'Symbol'.padEnd(12) +
-          'Description'.padEnd(25) +
-          'Amount'.padEnd(10) +
-          'Type'.padEnd(8) +
-          'Price'.padEnd(12) +
-          'Value'.padEnd(12) +
-          'P&L'.padEnd(10) +
-          'P&L %'
-        );
-        console.log('─'.repeat(100));
+        const columns = [
+          { key: 'symbol', label: 'Symbol', width: 12 },
+          { key: 'description', label: 'Description', width: 25, format: (v) => String(v).substring(0, 24) },
+          { key: 'amount', label: 'Amount', width: 10 },
+          { key: 'assetType', label: 'Type', width: 8 },
+          { key: 'currentPrice', label: 'Price', width: 12 },
+          { key: 'marketValue', label: 'Value', width: 12 },
+          { key: 'pnl', label: 'P&L', width: 10, format: (v) => `${parseFloat(v) >= 0 ? '✓' : '✗'} ${v}` },
+          { key: 'pnlPercent', label: 'P&L %', width: 8 },
+        ];
 
-        // Print rows
-        rows.forEach(row => {
-          const pnlColor = parseFloat(row.pnl) >= 0 ? '✓' : '✗';
-          console.log(
-            row.symbol.padEnd(12) +
-            row.description.substring(0, 24).padEnd(25) +
-            row.amount.toString().padEnd(10) +
-            row.assetType.padEnd(8) +
-            row.currentPrice.toString().padEnd(12) +
-            row.marketValue.padEnd(12) +
-            (pnlColor + ' ' + row.pnl).padEnd(10) +
-            row.pnlPercent
-          );
-        });
+        console.log(formatTable(rows, columns));
         console.log('');
         break;
       }
 
       case 'orders': {
         const data = await client.listOrders();
-        console.log(JSON.stringify(data, null, 2));
+        
+        if (!data.Data || data.Data.length === 0) {
+          console.log('No orders found.');
+          break;
+        }
+
+        console.log(`\n📋 Orders (${data.Data.length} order${data.Data.length !== 1 ? 's' : ''})\n`);
+        
+        const rows = data.Data.map(order => {
+          const displayFormat = order.DisplayAndFormat || {};
+          return {
+            orderId: String(order.OrderId || '').substring(0, 10),
+            symbol: displayFormat.Symbol || order.Symbol || '—',
+            description: displayFormat.Description || '—',
+            buySell: order.BuySell || '—',
+            orderType: order.OrderType || '—',
+            amount: typeof order.Amount === 'number' ? order.Amount.toFixed(0) : '—',
+            price: typeof order.Price === 'number' ? order.Price.toFixed(5) : '—',
+            status: order.Status || '—',
+          };
+        });
+
+        const columns = [
+          { key: 'orderId', label: 'Order ID', width: 12 },
+          { key: 'symbol', label: 'Symbol', width: 12 },
+          { key: 'description', label: 'Description', width: 20, format: (v) => String(v).substring(0, 19) },
+          { key: 'buySell', label: 'B/S', width: 6 },
+          { key: 'orderType', label: 'Type', width: 8 },
+          { key: 'amount', label: 'Amount', width: 10 },
+          { key: 'price', label: 'Price', width: 12 },
+          { key: 'status', label: 'Status', width: 10 },
+        ];
+
+        console.log(formatTable(rows, columns));
+        console.log('');
         break;
       }
 
