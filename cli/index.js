@@ -76,6 +76,11 @@ const portfolioParser = subparsers.add_parser('portfolio', {
   help: 'List portfolio positions',
 });
 
+// Orders command
+const ordersParser = subparsers.add_parser('orders', {
+  help: 'List all orders',
+});
+
 async function main() {
   const args = parser.parse_args();
 
@@ -95,11 +100,10 @@ async function main() {
     switch (args.command) {
       case 'chart': {
         let assetType = args.asset_type;
-          // Try to auto-detect if using default
-            assetType = await client.detectAssetType(String(args.uic));
-            console.log(`Detected asset type for UIC ${args.uic}: ${assetType}`);
+        // Try to auto-detect if using default
+        assetType = await client.detectAssetType(String(args.uic));
         const data = await client.fetchChart(String(args.uic), assetType, {
-          Horizon: String(args.horizon),
+            Horizon: String(args.horizon),
         });
         console.log(JSON.stringify(data, null, 2));
         break;
@@ -209,6 +213,12 @@ async function main() {
           );
         });
         console.log('');
+        break;
+      }
+
+      case 'orders': {
+        const data = await client.listOrders();
+        console.log(JSON.stringify(data, null, 2));
         break;
       }
 

@@ -148,6 +148,12 @@ const createClient = (token) => {
       }
       throw new Error(`Could not detect asset type for UIC ${uic}`);
     },
+
+    listOrders: async (fieldGroups = 'DisplayAndFormat') => {
+      return request('GET', '/port/v1/orders/me', null, {
+        FieldGroups: fieldGroups,
+      });
+    },
   };
 };
 

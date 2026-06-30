@@ -19,6 +19,9 @@ saxo buy 211 --amount 1000
 # Sell
 saxo sell 211 --amount 1000
 
+# List orders
+saxo orders
+
 # Help
 saxo --help
 ```
