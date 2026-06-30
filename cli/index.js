@@ -94,17 +94,30 @@ async function main() {
 
     switch (args.command) {
       case 'chart': {
-        const data = await client.fetchChart(args.uic, args.asset_type, {
-          Horizon: args.horizon,
+        let assetType = args.asset_type;
+          // Try to auto-detect if using default
+            assetType = await client.detectAssetType(String(args.uic));
+            console.log(`Detected asset type for UIC ${args.uic}: ${assetType}`);
+        const data = await client.fetchChart(String(args.uic), assetType, {
+          Horizon: String(args.horizon),
         });
         console.log(JSON.stringify(data, null, 2));
         break;
       }
 
       case 'buy': {
+        let assetType = args.asset_type;
+        if (assetType === 'FxSpot') {
+          // Try to auto-detect if using default
+          try {
+            assetType = await client.detectAssetType(String(args.uic));
+          } catch (error) {
+            // Fall back to default
+          }
+        }
         const result = await client.buy({
-          Uic: args.uic,
-          AssetType: args.asset_type,
+          Uic: String(args.uic),
+          AssetType: assetType,
           Amount: args.amount,
         });
         console.log('Buy order placed:');
@@ -113,9 +126,18 @@ async function main() {
       }
 
       case 'sell': {
+        let assetType = args.asset_type;
+        if (assetType === 'FxSpot') {
+          // Try to auto-detect if using default
+          try {
+            assetType = await client.detectAssetType(String(args.uic));
+          } catch (error) {
+            // Fall back to default
+          }
+        }
         const result = await client.sell({
-          Uic: args.uic,
-          AssetType: args.asset_type,
+          Uic: String(args.uic),
+          AssetType: assetType,
           Amount: args.amount,
         });
         console.log('Sell order placed:');
@@ -195,6 +217,9 @@ async function main() {
     }
   } catch (error) {
     console.error('Error:', error.message);
+    if (error.body) {
+      console.error('Response body:', JSON.stringify(error.body, null, 2));
+    }
     process.exit(1);
   }
 }

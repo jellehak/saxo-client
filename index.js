@@ -68,7 +68,10 @@ const createClient = (token) => {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(`API Error: ${response.status} - ${error.message || response.statusText}`);
+      const err = new Error(`API Error: ${response.status}`);
+      err.status = response.status;
+      err.body = error;
+      throw err;
     }
 
     return response.json();
@@ -134,6 +137,16 @@ const createClient = (token) => {
         Keywords: keywords,
         AssetTypes: assetTypes,
       });
+    },
+
+    detectAssetType: async (uic) => {
+      const result = await request('GET', '/ref/v1/instruments', null, {
+        Uics: String(uic),
+      });
+      if (result && result.Data && result.Data.length > 0) {
+        return result.Data[0].AssetType;
+      }
+      throw new Error(`Could not detect asset type for UIC ${uic}`);
     },
   };
 };
