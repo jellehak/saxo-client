@@ -1,6 +1,6 @@
 {
   "name": "saxo-client",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Minimal Saxo API client for Node.js and browsers",
   "type": "module",
   "main": "index.js",
