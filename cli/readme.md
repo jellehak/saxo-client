@@ -3,11 +3,22 @@ create a minimal cli example using argparse it should be able to do get market p
 Keep it in a single file and use the saxo-client library.
 
 # Usage
-```sh
-export SAXO_TOKEN="your_saxo_api_token"
 
+```sh
+export SAXO_TOKEN="your_token"
+
+# List portfolio
 saxo portfolio
-saxo chart --symbol AAPL
-saxo buy --symbol AAPL --quantity 10
-saxo sell --symbol AAPL --quantity 5
+
+# Get chart data
+saxo chart 211
+
+# Buy
+saxo buy 211 --amount 1000
+
+# Sell
+saxo sell 211 --amount 1000
+
+# Help
+saxo --help
 ```
