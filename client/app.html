@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio Trader - Saxo Client</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style>
+    body {
+      padding: 2rem;
+    }
+    nav {
+      margin-bottom: 2rem;
+    }
+    .section {
+      background: var(--form-element-background-color);
+      padding: 1.5rem;
+      border-radius: var(--border-radius);
+      margin-bottom: 1.5rem;
+    }
+    .portfolio-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .position-card {
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      padding: 1rem;
+      background: var(--card-background-color, var(--form-element-background-color));
+    }
+    .position-card h3 {
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+      font-size: 1.1rem;
+    }
+    .position-meta {
+      font-size: 0.9rem;
+      margin-bottom: 0.75rem;
+      opacity: 0.85;
+    }
+    .position-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+    .orders-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .order-card {
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      padding: 1rem;
+      background: var(--card-background-color, var(--form-element-background-color));
+    }
+    .order-card h3 {
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+    }
+    .transactions-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .transaction-card {
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      padding: 1rem;
+      background: var(--card-background-color, var(--form-element-background-color));
+    }
+    .transaction-card h3 {
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+    }
+    .results {
+      background: var(--code-background-color);
+      padding: 1rem;
+      border-radius: var(--border-radius);
+      font-family: monospace;
+      font-size: 0.9rem;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import { createApp, ref, onMounted, watch } from 'vue';
+    import { createClient } from '../index.js';
+
+    const app = createApp({
+      setup() {
+        const token = ref('');
+        const positions = ref([]);
+        const orders = ref([]);
+        const transactions = ref([]);
+        const loading = ref(false);
+        const actionLoading = ref({});
+        const results = ref('');
+
+        onMounted(() => {
+          const savedToken = localStorage.getItem('saxo-token');
+          if (savedToken) {
+            token.value = savedToken;
+          }
+        });
+
+        watch(token, (newToken) => {
+          if (newToken) {
+            localStorage.setItem('saxo-token', newToken);
+          } else {
+            localStorage.removeItem('saxo-token');
+          }
+        });
+
+        const positionUic = (position) => {
+          if (position?.Uic != null) return position.Uic;
+          if (position?.NetPositionBase?.Uic != null) return position.NetPositionBase.Uic;
+          return null;
+        };
+
+        const positionAssetType = (position) => {
+          if (position?.AssetType) return position.AssetType;
+          if (position?.NetPositionBase?.AssetType) return position.NetPositionBase.AssetType;
+          return 'FxSpot';
+        };
+
+        const positionName = (position) => {
+          return (
+            position?.DisplayAndFormat?.Description ||
+            position?.DisplayAndFormat?.Symbol ||
+            position?.Symbol ||
+            `UIC ${positionUic(position)}`
+          );
+        };
+
+        const positionStockAmount = (position) => {
+          const amount =
+            position?.NetPositionBase?.Amount ??
+            position?.NetPositionView?.Amount ??
+            position?.Amount ??
+            position?.NetPosition ??
+            position?.PositionBase?.Amount;
+
+          if (amount == null || Number.isNaN(Number(amount))) {
+            return 'N/A';
+          }
+
+          return Number(amount);
+        };
+
+        const logResult = (data) => {
+          results.value = JSON.stringify(data, null, 2);
+        };
+
+        const setError = (error) => {
+          results.value = `Error: ${error.message}`;
+        };
+
+        const loadPortfolio = async () => {
+          if (!token.value) {
+            results.value = 'Please enter a Bearer token';
+            return;
+          }
+
+          loading.value = true;
+          try {
+            const client = createClient(token.value);
+            const [portfolioResponse, ordersResponse, transactionsResponse] = await Promise.allSettled([
+              client.listPortfolio(),
+              client.listOrders(),
+              client.listRecentTransactions({ Top: 20 }),
+            ]);
+
+            const portfolioResult = portfolioResponse.status === 'fulfilled' ? portfolioResponse.value : null;
+            const ordersResult = ordersResponse.status === 'fulfilled' ? ordersResponse.value : null;
+            const transactionsResult = transactionsResponse.status === 'fulfilled' ? transactionsResponse.value : null;
+
+            positions.value = Array.isArray(portfolioResult?.Data) ? portfolioResult.Data : [];
+            orders.value = Array.isArray(ordersResult?.Data) ? ordersResult.Data : [];
+            transactions.value = Array.isArray(transactionsResult?.Data) ? transactionsResult.Data : [];
+
+            logResult({
+              portfolio: portfolioResult,
+              openOrders: ordersResult,
+              recentTransactions: transactionsResult,
+              warnings: {
+                portfolio: portfolioResponse.status === 'rejected' ? portfolioResponse.reason?.message || 'Failed to load portfolio' : null,
+                openOrders: ordersResponse.status === 'rejected' ? ordersResponse.reason?.message || 'Failed to load orders' : null,
+                recentTransactions: transactionsResponse.status === 'rejected' ? transactionsResponse.reason?.message || 'Failed to load transactions' : null,
+              },
+            });
+          } catch (error) {
+            setError(error);
+            positions.value = [];
+            orders.value = [];
+            transactions.value = [];
+          } finally {
+            loading.value = false;
+          }
+        };
+
+        const orderId = (order) => {
+          return order?.OrderId ?? order?.OrderKey ?? 'Unknown';
+        };
+
+        const orderName = (order) => {
+          return (
+            order?.DisplayAndFormat?.Description ||
+            order?.DisplayAndFormat?.Symbol ||
+            order?.Symbol ||
+            `Order ${orderId(order)}`
+          );
+        };
+
+        const orderStatus = (order) => {
+          return order?.Status || order?.OrderStatus || 'Unknown';
+        };
+
+        const orderSide = (order) => {
+          return order?.BuySell || 'Unknown';
+        };
+
+        const orderAmount = (order) => {
+          const amount = order?.Amount;
+          if (amount == null || Number.isNaN(Number(amount))) return 'N/A';
+          return Number(amount);
+        };
+
+        const transactionId = (transaction) => {
+          return transaction?.ClosedPositionId ?? transaction?.PositionId ?? transaction?.TradeId ?? 'Unknown';
+        };
+
+        const transactionName = (transaction) => {
+          return (
+            transaction?.DisplayAndFormat?.Description ||
+            transaction?.DisplayAndFormat?.Symbol ||
+            transaction?.Symbol ||
+            `Transaction ${transactionId(transaction)}`
+          );
+        };
+
+        const transactionAmount = (transaction) => {
+          const amount =
+            transaction?.ClosedPosition?.Amount ??
+            transaction?.Amount ??
+            transaction?.NetPositionBase?.Amount;
+
+          if (amount == null || Number.isNaN(Number(amount))) return 'N/A';
+          return Number(amount);
+        };
+
+        const transactionPnl = (transaction) => {
+          const pnl =
+            transaction?.NetPositionView?.ProfitLossOnTrade ??
+            transaction?.ProfitLossOnTrade ??
+            transaction?.Pnl;
+
+          if (pnl == null || Number.isNaN(Number(pnl))) return 'N/A';
+          return Number(pnl);
+        };
+
+        const transactionDate = (transaction) => {
+          return (
+            transaction?.ClosedPosition?.ClosedDate ||
+            transaction?.ClosedDate ||
+            transaction?.ExecutionTime ||
+            'Unknown'
+          );
+        };
+
+        const submitTrade = async (position, side) => {
+          const uic = positionUic(position);
+          const assetType = positionAssetType(position);
+          const stockAmount = positionStockAmount(position);
+          const defaultAmount = side === 'sell' && Number.isFinite(Number(stockAmount))
+            ? String(Math.max(1, Number(stockAmount)))
+            : '1';
+          const amountInput = window.prompt(`Enter amount to ${side} for ${positionName(position)}:`, defaultAmount);
+
+          if (amountInput === null) {
+            results.value = 'Trade cancelled';
+            return;
+          }
+
+          const amount = parseInt(amountInput, 10);
+
+          if (!token.value) {
+            results.value = 'Please enter a Bearer token';
+            return;
+          }
+
+          if (!uic) {
+            results.value = 'Could not find UIC for this position';
+            return;
+          }
+
+          if (!Number.isFinite(amount) || amount <= 0) {
+            results.value = 'Quantity must be a positive number';
+            return;
+          }
+
+          const key = `${side}-${uic}`;
+          actionLoading.value = { ...actionLoading.value, [key]: true };
+
+          try {
+            const client = createClient(token.value);
+            const payload = {
+              Uic: Number(uic),
+              AssetType: assetType,
+              Amount: amount,
+            };
+
+            const result = side === 'buy'
+              ? await client.buy(payload)
+              : await client.sell(payload);
+
+            logResult({
+              action: side.toUpperCase(),
+              instrument: positionName(position),
+              payload,
+              response: result,
+            });
+          } catch (error) {
+            setError(error);
+          } finally {
+            actionLoading.value = { ...actionLoading.value, [key]: false };
+          }
+        };
+
+        const isActionLoading = (side, position) => {
+          const uic = positionUic(position);
+          return Boolean(actionLoading.value[`${side}-${uic}`]);
+        };
+
+        return {
+          token,
+          positions,
+          orders,
+          transactions,
+          results,
+          loading,
+          loadPortfolio,
+          submitTrade,
+          isActionLoading,
+          positionUic,
+          positionAssetType,
+          positionName,
+          positionStockAmount,
+          orderId,
+          orderName,
+          orderStatus,
+          orderSide,
+          orderAmount,
+          transactionId,
+          transactionName,
+          transactionAmount,
+          transactionPnl,
+          transactionDate,
+        };
+      },
+
+      template: `
+        <main class="container">
+          <nav>
+            <a href="index.html">← Back</a>
+          </nav>
+
+          <h1>Portfolio Trader</h1>
+          <p>Load your portfolio and place buy or sell orders directly from each position card.</p>
+
+          <section class="section">
+            <h2>Configuration</h2>
+            <label>
+              Bearer Token
+              <input
+                v-model="token"
+                type="password"
+                placeholder="Your Saxo API token"
+              />
+            </label>
+
+            <button
+              @click="loadPortfolio"
+              :disabled="loading"
+              aria-busy="loading"
+            >
+              Load Portfolio
+            </button>
+          </section>
+
+          <section class="section">
+            <h2>Portfolio</h2>
+            <div v-if="positions.length === 0" class="results" style="max-height: none;">
+              No positions loaded yet.
+            </div>
+
+            <div v-else class="portfolio-grid">
+              <article
+                v-for="position in positions"
+                :key="positionUic(position)"
+                class="position-card"
+              >
+                <h3>{{ positionName(position) }}</h3>
+                <p class="position-meta">
+                  UIC: {{ positionUic(position) }}
+                  | Asset: {{ positionAssetType(position) }}
+                </p>
+                <p class="position-meta">
+                  Stocks: {{ positionStockAmount(position) }}
+                </p>
+                <div class="position-actions">
+                  <button
+                    @click="submitTrade(position, 'buy')"
+                    :disabled="isActionLoading('buy', position)"
+                    aria-busy="isActionLoading('buy', position)"
+                  >
+                    Buy
+                  </button>
+                  <button
+                    @click="submitTrade(position, 'sell')"
+                    :disabled="isActionLoading('sell', position)"
+                    aria-busy="isActionLoading('sell', position)"
+                    class="secondary"
+                  >
+                    Sell
+                  </button>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="section">
+            <h2>Open Orders</h2>
+            <div v-if="orders.length === 0" class="results" style="max-height: none;">
+              No open orders found.
+            </div>
+
+            <div v-else class="orders-list">
+              <article
+                v-for="order in orders"
+                :key="orderId(order)"
+                class="order-card"
+              >
+                <h3>{{ orderName(order) }}</h3>
+                <p class="position-meta">
+                  Order ID: {{ orderId(order) }}
+                </p>
+                <p class="position-meta">
+                  Side: {{ orderSide(order) }}
+                  | Amount: {{ orderAmount(order) }}
+                </p>
+                <p class="position-meta">
+                  Status: {{ orderStatus(order) }}
+                </p>
+              </article>
+            </div>
+          </section>
+
+          <section class="section">
+            <h2>Recent Transactions</h2>
+            <div v-if="transactions.length === 0" class="results" style="max-height: none;">
+              No recent transactions found.
+            </div>
+
+            <div v-else class="transactions-list">
+              <article
+                v-for="transaction in transactions"
+                :key="transactionId(transaction)"
+                class="transaction-card"
+              >
+                <h3>{{ transactionName(transaction) }}</h3>
+                <p class="position-meta">
+                  Transaction ID: {{ transactionId(transaction) }}
+                </p>
+                <p class="position-meta">
+                  Amount: {{ transactionAmount(transaction) }}
+                  | P/L: {{ transactionPnl(transaction) }}
+                </p>
+                <p class="position-meta">
+                  Date: {{ transactionDate(transaction) }}
+                </p>
+              </article>
+            </div>
+          </section>
+
+          <section class="section">
+            <h2>Latest API Result</h2>
+            <div class="results">{{ results || 'API responses and errors will appear here...' }}</div>
+          </section>
+        </main>
+      `,
+    });
+
+    app.mount('#app');
+  </script>
+</body>
+</html>

@@ -5,6 +5,7 @@ Keep it in a single file and use the saxo-client library.
 # Usage
 
 ```sh
+# Get your token at https://www.developer.saxo/openapi/token
 export SAXO_TOKEN="your_token"
 
 # List portfolio

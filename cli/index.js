@@ -76,7 +76,7 @@ buyParser.add_argument('--amount', {
   help: 'Amount to buy',
 });
 buyParser.add_argument('--asset-type', {
-  default: 'FxSpot',
+  default: '', // Autodetect if not provided
   help: 'Asset type (default: FxSpot)',
 });
 
@@ -145,6 +145,9 @@ async function main() {
             // Fall back to default
           }
         }
+        // Log
+        console.log(`Placing buy order for UIC ${args.uic}, amount ${args.amount}, asset type ${assetType}`);
+
         const result = await client.buy({
           Uic: String(args.uic),
           AssetType: assetType,

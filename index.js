@@ -154,6 +154,13 @@ const createClient = (token) => {
         FieldGroups: fieldGroups,
       });
     },
+
+    listRecentTransactions: async (params = {}) => {
+      return request('GET', '/port/v1/closedpositions/me', null, {
+        FieldGroups: 'DisplayAndFormat,ExchangeInfo',
+        ...params,
+      });
+    },
   };
 };
 
