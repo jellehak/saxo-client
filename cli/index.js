@@ -54,7 +54,7 @@ chartParser.add_argument('uic', {
   help: 'Instrument UIC (e.g., 211 for EURUSD)',
 });
 chartParser.add_argument('--asset-type', {
-  default: 'FxSpot',
+  default: '', // Autodetect if not provided
   help: 'Asset type (default: FxSpot)',
 });
 chartParser.add_argument('--horizon', {
@@ -93,7 +93,7 @@ sellParser.add_argument('--amount', {
   help: 'Amount to sell',
 });
 sellParser.add_argument('--asset-type', {
-  default: 'FxSpot',
+  default: '', // Autodetect if not provided
   help: 'Asset type (default: FxSpot)',
 });
 
