@@ -79,6 +79,36 @@
       margin-bottom: 0.5rem;
       font-size: 1rem;
     }
+    .balance-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .balance-item {
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      padding: 1rem;
+      background: var(--card-background-color, var(--form-element-background-color));
+    }
+    .balance-item-label {
+      font-size: 0.85rem;
+      opacity: 0.75;
+      margin-bottom: 0.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .balance-item-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      word-break: break-word;
+    }
+    .balance-item-value.positive {
+      color: var(--form-element-valid-border-color, #28a745);
+    }
+    .balance-item-value.negative {
+      color: var(--form-element-invalid-border-color, #dc3545);
+    }
     .results {
       background: var(--code-background-color);
       padding: 1rem;
@@ -111,6 +141,7 @@
     const app = createApp({
       setup() {
         const token = ref('');
+        const balance = ref(null);
         const positions = ref([]);
         const orders = ref([]);
         const transactions = ref([]);
@@ -177,6 +208,17 @@
           results.value = `Error: ${error.message}`;
         };
 
+        const formatCurrency = (value, currency = 'EUR') => {
+          if (value == null || Number.isNaN(Number(value))) return 'N/A';
+          const num = Number(value);
+          return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: currency,
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }).format(num);
+        };
+
         const loadPortfolio = async () => {
           if (!token.value) {
             results.value = 'Please enter a Bearer token';
@@ -186,25 +228,30 @@
           loading.value = true;
           try {
             const client = createClient(token.value);
-            const [portfolioResponse, ordersResponse, transactionsResponse] = await Promise.allSettled([
+            const [balanceResponse, portfolioResponse, ordersResponse, transactionsResponse] = await Promise.allSettled([
+              client.getBalance(),
               client.listPortfolio(),
               client.listOrders(),
               client.listRecentTransactions({ Top: 20 }),
             ]);
 
+            const balanceResult = balanceResponse.status === 'fulfilled' ? balanceResponse.value : null;
             const portfolioResult = portfolioResponse.status === 'fulfilled' ? portfolioResponse.value : null;
             const ordersResult = ordersResponse.status === 'fulfilled' ? ordersResponse.value : null;
             const transactionsResult = transactionsResponse.status === 'fulfilled' ? transactionsResponse.value : null;
 
+            balance.value = balanceResult;
             positions.value = Array.isArray(portfolioResult?.Data) ? portfolioResult.Data : [];
             orders.value = Array.isArray(ordersResult?.Data) ? ordersResult.Data : [];
             transactions.value = Array.isArray(transactionsResult?.Data) ? transactionsResult.Data : [];
 
             logResult({
+              balance: balanceResult,
               portfolio: portfolioResult,
               openOrders: ordersResult,
               recentTransactions: transactionsResult,
               warnings: {
+                balance: balanceResponse.status === 'rejected' ? balanceResponse.reason?.message || 'Failed to load balance' : null,
                 portfolio: portfolioResponse.status === 'rejected' ? portfolioResponse.reason?.message || 'Failed to load portfolio' : null,
                 openOrders: ordersResponse.status === 'rejected' ? ordersResponse.reason?.message || 'Failed to load orders' : null,
                 recentTransactions: transactionsResponse.status === 'rejected' ? transactionsResponse.reason?.message || 'Failed to load transactions' : null,
@@ -212,6 +259,7 @@
             });
           } catch (error) {
             setError(error);
+            balance.value = null;
             positions.value = [];
             orders.value = [];
             transactions.value = [];
@@ -355,6 +403,7 @@
 
         return {
           token,
+          balance,
           positions,
           orders,
           transactions,
@@ -363,6 +412,7 @@
           loadPortfolio,
           submitTrade,
           isActionLoading,
+          formatCurrency,
           positionUic,
           positionAssetType,
           positionName,
@@ -407,6 +457,58 @@
             >
               Load Portfolio
             </button>
+          </section>
+
+          <section class="section">
+            <h2>Account Balance</h2>
+            <div v-if="!balance" class="results" style="max-height: none;">
+              Load portfolio to see balance information.
+            </div>
+
+            <div v-else class="balance-grid">
+              <div class="balance-item">
+                <div class="balance-item-label">Cash Balance</div>
+                <div class="balance-item-value">{{ formatCurrency(balance.CashBalance, balance.Currency) }}</div>
+              </div>
+              <div class="balance-item">
+                <div class="balance-item-label">Total Value</div>
+                <div class="balance-item-value">{{ formatCurrency(balance.TotalValue, balance.Currency) }}</div>
+              </div>
+              <div class="balance-item">
+                <div class="balance-item-label">Cash Available for Trading</div>
+                <div class="balance-item-value">{{ formatCurrency(balance.CashAvailableForTrading, balance.Currency) }}</div>
+              </div>
+              <div class="balance-item">
+                <div class="balance-item-label">Margin Available</div>
+                <div class="balance-item-value">{{ formatCurrency(balance.MarginAvailableForTrading, balance.Currency) }}</div>
+              </div>
+              <div class="balance-item">
+                <div class="balance-item-label">Collateral Available</div>
+                <div class="balance-item-value">{{ formatCurrency(balance.CollateralAvailable, balance.Currency) }}</div>
+              </div>
+              <div class="balance-item">
+                <div class="balance-item-label">Net Equity for Margin</div>
+                <div class="balance-item-value">{{ formatCurrency(balance.NetEquityForMargin, balance.Currency) }}</div>
+              </div>
+              <div class="balance-item">
+                <div class="balance-item-label">Unrealized P/L</div>
+                <div class="balance-item-value" :class="balance.UnrealizedMarginProfitLoss >= 0 ? 'positive' : 'negative'">
+                  {{ formatCurrency(balance.UnrealizedMarginProfitLoss, balance.Currency) }}
+                </div>
+              </div>
+              <div class="balance-item">
+                <div class="balance-item-label">Margin Utilization</div>
+                <div class="balance-item-value">{{ balance.MarginUtilizationPct?.toFixed(2) || 'N/A' }}%</div>
+              </div>
+              <div class="balance-item">
+                <div class="balance-item-label">Open Positions</div>
+                <div class="balance-item-value">{{ balance.OpenPositionsCount }}</div>
+              </div>
+              <div class="balance-item">
+                <div class="balance-item-label">Net Positions</div>
+                <div class="balance-item-value">{{ balance.NetPositionsCount }}</div>
+              </div>
+            </div>
           </section>
 
           <section class="section">

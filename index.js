@@ -161,6 +161,14 @@ const createClient = (token) => {
         ...params,
       });
     },
+
+    getBalance: async (params = {}) => {
+      return request('GET', '/port/v1/balances', null, {
+        AccountKey: clientKey,
+        ClientKey: clientKey,
+        ...params,
+      });
+    },
   };
 };
 
