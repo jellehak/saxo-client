@@ -1,7 +1,21 @@
 #!/usr/bin/env node
 
+import * as dotenv from 'dotenv';
 import { ArgumentParser } from 'argparse';
 import { createClient } from '../index.js';
+import path from 'path';
+import { existsSync } from 'fs';
+import { homedir } from 'os';
+
+// Load environment variables from .env files
+// First, try local .env in current directory
+dotenv.config();
+
+// Then, load from ~/.saxo/.env if it exists
+const saxoEnvPath = path.join(homedir(), '.saxo', '.env');
+if (existsSync(saxoEnvPath)) {
+  dotenv.config({ path: saxoEnvPath });
+}
 
 // Generic table formatter
 const formatTable = (data, columns) => {
