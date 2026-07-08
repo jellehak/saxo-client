@@ -4,124 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Portfolio Trader - Saxo Client</title>
+  <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-  <style>
-    body {
-      padding: 2rem;
-    }
-    nav {
-      margin-bottom: 2rem;
-    }
-    .section {
-      background: var(--form-element-background-color);
-      padding: 1.5rem;
-      border-radius: var(--border-radius);
-      margin-bottom: 1.5rem;
-    }
-    .portfolio-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 1rem;
-      margin-top: 1rem;
-    }
-    .position-card {
-      border: 1px solid var(--border-color);
-      border-radius: var(--border-radius);
-      padding: 1rem;
-      background: var(--card-background-color, var(--form-element-background-color));
-    }
-    .position-card h3 {
-      margin-top: 0;
-      margin-bottom: 0.5rem;
-      font-size: 1.1rem;
-    }
-    .position-meta {
-      font-size: 0.9rem;
-      margin-bottom: 0.75rem;
-      opacity: 0.85;
-    }
-    .position-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.5rem;
-    }
-    .orders-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 1rem;
-      margin-top: 1rem;
-    }
-    .order-card {
-      border: 1px solid var(--border-color);
-      border-radius: var(--border-radius);
-      padding: 1rem;
-      background: var(--card-background-color, var(--form-element-background-color));
-    }
-    .order-card h3 {
-      margin-top: 0;
-      margin-bottom: 0.5rem;
-      font-size: 1rem;
-    }
-    .transactions-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 1rem;
-      margin-top: 1rem;
-    }
-    .transaction-card {
-      border: 1px solid var(--border-color);
-      border-radius: var(--border-radius);
-      padding: 1rem;
-      background: var(--card-background-color, var(--form-element-background-color));
-    }
-    .transaction-card h3 {
-      margin-top: 0;
-      margin-bottom: 0.5rem;
-      font-size: 1rem;
-    }
-    .balance-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-      margin-top: 1rem;
-    }
-    .balance-item {
-      border: 1px solid var(--border-color);
-      border-radius: var(--border-radius);
-      padding: 1rem;
-      background: var(--card-background-color, var(--form-element-background-color));
-    }
-    .balance-item-label {
-      font-size: 0.85rem;
-      opacity: 0.75;
-      margin-bottom: 0.25rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    .balance-item-value {
-      font-size: 1.5rem;
-      font-weight: bold;
-      word-break: break-word;
-    }
-    .balance-item-value.positive {
-      color: var(--form-element-valid-border-color, #28a745);
-    }
-    .balance-item-value.negative {
-      color: var(--form-element-invalid-border-color, #dc3545);
-    }
-    .results {
-      background: var(--code-background-color);
-      padding: 1rem;
-      border-radius: var(--border-radius);
-      font-family: monospace;
-      font-size: 0.9rem;
-      overflow-x: auto;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      max-height: 300px;
-      overflow-y: auto;
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div id="app"></div>
@@ -136,7 +21,7 @@
 
   <script type="module">
     import { createApp, ref, onMounted, watch } from 'vue';
-    import { createClient } from '../index.js';
+    import { createClient } from '../../index.js';
 
     const app = createApp({
       setup() {

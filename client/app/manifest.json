@@ -1,0 +1,11 @@
+{
+  "name": "Portfolio Trader - Saxo Client",
+  "short_name": "Portfolio Trader",
+  "description": "Load your portfolio and place buy or sell orders directly from each position card using Saxo API",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff",
+  "orientation": "portrait-primary"
+}
