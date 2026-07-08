@@ -169,6 +169,13 @@ const createClient = (token) => {
         ...params,
       });
     },
+
+    getMe: async (params = {}) => {
+      return request('GET', '/port/v1/accounts/me', null, {
+        FieldGroups: 'AccountStatus,CurrencyDecimals',
+        ...params,
+      });
+    },
   };
 };
 

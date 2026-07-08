@@ -121,6 +121,11 @@ const ordersParser = subparsers.add_parser('orders', {
   help: 'List all orders',
 });
 
+// Me command
+const meParser = subparsers.add_parser('me', {
+  help: 'Show account information',
+});
+
 async function main() {
   const args = parser.parse_args();
 
@@ -271,6 +276,27 @@ async function main() {
         ];
 
         console.log(formatTable(rows, columns));
+        console.log('');
+        break;
+      }
+
+      case 'me': {
+        const data = await client.getMe();
+        
+        if (!data.Data || data.Data.length === 0) {
+          console.log('No account information found.');
+          break;
+        }
+
+        const account = data.Data[0];
+        console.log(`\n👤 Account Information\n`);
+        console.log(`  Account ID:    ${account.AccountId || '—'}`);
+        console.log(`  Account Name:  ${account.AccountName || '—'}`);
+        console.log(`  Account Type:  ${account.AccountType || '—'}`);
+        console.log(`  Status:        ${account.TradingStatus || '—'}`);
+        console.log(`  Currency:      ${account.PreferredCurrency || '—'}`);
+        console.log(`  Cash Balance:  ${account.CashBalance !== undefined ? account.CashBalance.toFixed(2) : '—'}`);
+        console.log(`  Broker:        ${account.Broker || '—'}`);
         console.log('');
         break;
       }
