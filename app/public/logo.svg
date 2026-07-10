@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="95" fill="#1a1a2e" stroke="#00d4ff" stroke-width="2"/>
+  
+  <!-- Upward trending arrow (portfolio growth) -->
+  <g transform="translate(50, 120)">
+    <!-- Trend line -->
+    <polyline points="0,50 20,35 40,45 60,20 80,30 100,5" 
+              fill="none" stroke="#00d4ff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    
+    <!-- Arrow head -->
+    <polygon points="100,5 90,15 100,20 110,15" fill="#00d4ff"/>
+  </g>
+  
+  <!-- Portfolio briefcase shape -->
+  <g transform="translate(70, 60)">
+    <!-- Briefcase body -->
+    <rect x="10" y="15" width="50" height="35" rx="3" fill="none" stroke="#00ff88" stroke-width="2.5"/>
+    
+    <!-- Handle -->
+    <path d="M 20 15 Q 35 0 50 15" fill="none" stroke="#00ff88" stroke-width="2.5" stroke-linecap="round"/>
+    
+    <!-- Center line detail -->
+    <line x1="35" y1="15" x2="35" y2="50" stroke="#00ff88" stroke-width="1.5" opacity="0.6"/>
+  </g>
+  
+  <!-- Accent dots for trading elements -->
+  <circle cx="75" cy="50" r="2.5" fill="#ff006e" opacity="0.8"/>
+  <circle cx="125" cy="70" r="2.5" fill="#ff006e" opacity="0.8"/>
+</svg>

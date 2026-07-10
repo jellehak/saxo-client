@@ -68,6 +68,15 @@ curl -X POST http://localhost:3000/buy \
     "AssetType": "FxSpot",
     "Amount": 1000
   }'
+
+# ASML
+curl -X POST http://localhost:3000/buy \
+  -H "Content-Type: application/json" \
+  -d '{
+    "Uic": 1636,
+    "AssetType": "CfdOnStock",
+    "Amount": 1
+  }'
 ```
 
 ### Sell an Instrument
