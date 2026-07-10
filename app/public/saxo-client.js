@@ -3,6 +3,8 @@
 
 const GATEWAY = 'https://gateway.saxobank.com/sim/openapi';
 
+const ASSET_TYPE = ''; // FxSpot
+
 const decodeToken = (token) => {
   try {
     const parts = token.split('.');
@@ -83,7 +85,7 @@ const createClient = (token) => {
         AccountKey: clientKey,
         OrderType: 'Market',
         BuySell: 'Buy',
-        AssetType: 'FxSpot',
+        AssetType: ASSET_TYPE,
         OrderDuration: { DurationType: 'DayOrder' },
         ManualOrder: true,
         ...orderData,
@@ -95,7 +97,7 @@ const createClient = (token) => {
         AccountKey: clientKey,
         OrderType: 'Market',
         BuySell: 'Sell',
-        AssetType: 'FxSpot',
+        AssetType: ASSET_TYPE,
         OrderDuration: { DurationType: 'DayOrder' },
         ManualOrder: true,
         ...orderData,
@@ -103,26 +105,28 @@ const createClient = (token) => {
     },
 
     listPortfolio: async (fieldGroups = 'NetPositionBase,NetPositionView,DisplayAndFormat') => {
-      return request('GET', '/port/v1/netpositions', null, {
+      const result = await request('GET', '/port/v1/netpositions', null, {
         FieldGroups: fieldGroups,
         ClientKey: clientKey,
       });
+      return result.Data || [];
     },
 
-    fetchInstrument: async (uic, assetType = 'FxSpot') => {
-      return request('GET', `/ref/v1/instruments/${uic}`, null, {
+    fetchInstrument: async (uic, assetType = ASSET_TYPE) => {
+      const result = await request('GET', `/ref/v1/instruments/${uic}`, null, {
         AssetTypes: assetType,
       });
+      return result.Data || [];
     },
 
-    fetchTradingConditions: async (uic, assetType = 'FxSpot') => {
+    fetchTradingConditions: async (uic, assetType = ASSET_TYPE) => {
       return request('GET', `/ref/v1/instruments/${uic}/details`, null, {
         AssetTypes: assetType,
         FieldGroups: 'MinimumTradeSize,PipSize,ContractSize',
       });
     },
 
-    fetchChart: async (uic, assetType = 'FxSpot', params = {}) => {
+    fetchChart: async (uic, assetType = ASSET_TYPE, params = {}) => {
       const url = `/chart/v3/charts`;
       return request('GET', url, null, {
         Uic: uic,
@@ -132,11 +136,12 @@ const createClient = (token) => {
       });
     },
 
-    searchInstruments: async (keywords, assetTypes = 'FxSpot') => {
-      return request('GET', '/ref/v1/instruments', null, {
+    searchInstruments: async (keywords, assetTypes = '') => {
+      const result = await request('GET', '/ref/v1/instruments', null, {
         Keywords: keywords,
         AssetTypes: assetTypes,
       });
+      return result.Data || [];
     },
 
     detectAssetType: async (uic) => {
@@ -150,31 +155,35 @@ const createClient = (token) => {
     },
 
     listOrders: async (fieldGroups = 'DisplayAndFormat') => {
-      return request('GET', '/port/v1/orders/me', null, {
+      const result = await request('GET', '/port/v1/orders/me', null, {
         FieldGroups: fieldGroups,
       });
+      return result.Data || [];
     },
 
     listRecentTransactions: async (params = {}) => {
-      return request('GET', '/port/v1/closedpositions/me', null, {
+      const result = await request('GET', '/port/v1/closedpositions/me', null, {
         FieldGroups: 'DisplayAndFormat,ExchangeInfo',
         ...params,
       });
+      return result.Data || [];
     },
 
     getBalance: async (params = {}) => {
-      return request('GET', '/port/v1/balances', null, {
+      const result = await request('GET', '/port/v1/balances', null, {
         AccountKey: clientKey,
         ClientKey: clientKey,
         ...params,
       });
+      return result.Data ? result.Data[0] : result;
     },
 
     getMe: async (params = {}) => {
-      return request('GET', '/port/v1/accounts/me', null, {
+      const result = await request('GET', '/port/v1/accounts/me', null, {
         FieldGroups: 'AccountStatus,CurrencyDecimals',
         ...params,
       });
+      return result.Data ? result.Data[0] : result;
     },
   };
 };
