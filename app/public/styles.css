@@ -1,9 +1,69 @@
-body {
-  padding: 2rem;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-nav {
-  margin-bottom: 2rem;
+body {
+  padding: 0;
+  margin: 0;
+}
+
+/* Navbar Styles */
+.navbar {
+  background: var(--form-element-background-color, #1a1a2e);
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.navbar-logo {
+  width: 40px;
+  height: 40px;
+  color: var(--form-element-valid-border-color, #00d4ff);
+}
+
+.navbar-title {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--contrast);
+}
+
+.navbar-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.navbar-refresh {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+.navbar-logout {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+/* Main container */
+.container {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Token Input Styles */
+.token-input-container {
+  margin-bottom: 1rem;
 }
 
 .section {
@@ -37,6 +97,34 @@ nav {
   font-size: 0.9rem;
   margin-bottom: 0.75rem;
   opacity: 0.85;
+}
+
+.position-price {
+  background: var(--code-background-color);
+  padding: 0.75rem;
+  border-radius: var(--border-radius);
+  margin-bottom: 0.75rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 0.5rem;
+}
+
+.price-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.price-label {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.price-value {
+  font-weight: 600;
+  font-size: 0.95rem;
 }
 
 .position-actions {

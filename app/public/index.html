@@ -26,6 +26,7 @@
     const app = createApp({
       setup() {
         const token = ref('');
+        const tokenVisible = ref(false);
         const balance = ref(null);
         const positions = ref([]);
         const orders = ref([]);
@@ -33,6 +34,7 @@
         const loading = ref(false);
         const actionLoading = ref({});
         const results = ref('');
+        const priceLoading = ref({});
 
         onMounted(() => {
           const savedToken = localStorage.getItem('saxo-token');
@@ -104,6 +106,31 @@
           }).format(num);
         };
 
+        const fetchPriceForPosition = async (position) => {
+          try {
+            const uic = positionUic(position);
+            const assetType = positionAssetType(position);
+            if (!uic) return null;
+
+            const client = createClient(token.value);
+            const result = await client.fetchInstrument(uic, assetType);
+            
+            if (result?.Data && result.Data.length > 0) {
+              const instrument = result.Data[0];
+              return {
+                bid: instrument.Bid,
+                ask: instrument.Ask,
+                last: instrument.Last,
+                mid: instrument.Mid,
+              };
+            }
+            return null;
+          } catch (error) {
+            console.error('Error fetching price:', error);
+            return null;
+          }
+        };
+
         const loadPortfolio = async () => {
           if (!token.value) {
             results.value = 'Please enter a Bearer token';
@@ -129,6 +156,17 @@
             positions.value = Array.isArray(portfolioResult?.Data) ? portfolioResult.Data : [];
             orders.value = Array.isArray(ordersResult?.Data) ? ordersResult.Data : [];
             transactions.value = Array.isArray(transactionsResult?.Data) ? transactionsResult.Data : [];
+
+            // Fetch prices for all positions
+            if (positions.value.length > 0) {
+              for (const position of positions.value) {
+                const uic = positionUic(position);
+                priceLoading.value[uic] = true;
+                const price = await fetchPriceForPosition(position);
+                position._price = price;
+                priceLoading.value[uic] = false;
+              }
+            }
 
             logResult({
               balance: balanceResult,
@@ -286,8 +324,19 @@
           return Boolean(actionLoading.value[`${side}-${uic}`]);
         };
 
+        const logout = () => {
+          token.value = '';
+          tokenVisible.value = false;
+          balance.value = null;
+          positions.value = [];
+          orders.value = [];
+          transactions.value = [];
+          results.value = '';
+        };
+
         return {
           token,
+          tokenVisible,
           balance,
           positions,
           orders,
@@ -312,36 +361,67 @@
           transactionAmount,
           transactionPnl,
           transactionDate,
+          logout,
         };
       },
 
       template: `
-        <main class="container">
-          <nav>
-            <a href="index.html">← Back</a>
-          </nav>
-
-          <h1>Portfolio Trader</h1>
-          <p>Load your portfolio and place buy or sell orders directly from each position card.</p>
-
-          <section class="section">
-            <h2>Configuration</h2>
-            <label>
-              Bearer Token
-              <input
-                v-model="token"
-                type="password"
-                placeholder="Your Saxo API token"
-              />
-            </label>
-
-            <button
+        <nav class="navbar">
+          <div class="navbar-brand">
+            <svg class="navbar-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+              <circle cx="100" cy="100" r="95" fill="#1a1a2e" stroke="currentColor" stroke-width="2"/>
+              <g transform="translate(50, 120)">
+                <polyline points="0,50 20,35 40,45 60,20 80,30 100,5" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                <polygon points="100,5 90,15 100,20 110,15" fill="currentColor"/>
+              </g>
+              <g transform="translate(70, 60)">
+                <rect x="10" y="15" width="50" height="35" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/>
+                <path d="M 20 15 Q 35 0 50 15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                <line x1="35" y1="15" x2="35" y2="50" stroke="currentColor" stroke-width="1.5" opacity="0.6"/>
+              </g>
+            </svg>
+            <h1 class="navbar-title">Portfolio Trader</h1>
+          </div>
+          <div class="navbar-actions">
+            <button 
+              v-if="token"
               @click="loadPortfolio"
               :disabled="loading"
               aria-busy="loading"
+              class="navbar-refresh"
             >
-              Load Portfolio
+              Refresh
             </button>
+            <button 
+              v-if="token" 
+              @click="logout"
+              class="navbar-logout"
+            >
+              Logout
+            </button>
+          </div>
+        </nav>
+
+        <main class="container">
+          <section class="section" v-if="!token || tokenVisible">
+            <h2>Configuration</h2>
+            <div class="token-input-container">
+              <label>
+                Bearer Token
+                <input
+                  v-model="token"
+                  type="password"
+                  placeholder="Your Saxo API token"
+                />
+              </label>
+              <button
+                v-if="tokenVisible"
+                @click="tokenVisible = false"
+                class="secondary"
+              >
+                Hide Token
+              </button>
+            </div>
           </section>
 
           <section class="section">
@@ -410,12 +490,27 @@
               >
                 <h3>{{ positionName(position) }}</h3>
                 <p class="position-meta">
-                  UIC: {{ positionUic(position) }}
-                  | Asset: {{ positionAssetType(position) }}
+                  UIC: {{ positionUic(position) }} | Asset: {{ positionAssetType(position) }}
                 </p>
                 <p class="position-meta">
-                  Stocks: {{ positionStockAmount(position) }}
+                  Quantity: {{ positionStockAmount(position) }}
                 </p>
+                
+                <div v-if="position._price" class="position-price">
+                  <div class="price-item">
+                    <span class="price-label">Bid:</span>
+                    <span class="price-value">{{ position._price.bid ?? 'N/A' }}</span>
+                  </div>
+                  <div class="price-item">
+                    <span class="price-label">Ask:</span>
+                    <span class="price-value">{{ position._price.ask ?? 'N/A' }}</span>
+                  </div>
+                  <div class="price-item">
+                    <span class="price-label">Mid:</span>
+                    <span class="price-value">{{ position._price.mid ?? 'N/A' }}</span>
+                  </div>
+                </div>
+
                 <div class="position-actions">
                   <button
                     @click="submitTrade(position, 'buy')"
@@ -489,11 +584,6 @@
                 </p>
               </article>
             </div>
-          </section>
-
-          <section class="section">
-            <h2>Latest API Result</h2>
-            <div class="results">{{ results || 'API responses and errors will appear here...' }}</div>
           </section>
         </main>
       `,
