@@ -2,11 +2,25 @@
 
 import 'dotenv/config.js';
 import express from 'express';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { createClient } from '../index.js';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
 const TOKEN = process.env.SAXO_TOKEN;
+
+// Load lookup.json
+let lookupTable = {};
+try {
+  const lookupPath = path.join(__dirname, 'lookup.json');
+  const lookupData = fs.readFileSync(lookupPath, 'utf-8');
+  lookupTable = JSON.parse(lookupData);
+} catch (error) {
+  console.warn('Warning: Could not load lookup.json:', error.message);
+}
 
 // Middleware
 app.use(express.json());
@@ -46,15 +60,36 @@ app.get('/', (req, res) => {
     endpoints: {
       'GET /': 'This help page',
       'GET /health': 'Health check',
+      'GET /lookup': 'List all instruments in lookup.json',
+      'GET /lookup/:symbol': 'Get instrument by symbol from lookup.json',
       'GET /me': 'Get consolidated account info (portfolio, orders, balance, account)',
       'GET /portfolio': 'List all open positions',
       'GET /orders': 'List all open orders',
       'GET /balance': 'Get account balance',
       'GET /account': 'Get account information',
-      'POST /buy': 'Place a buy order (body: { Uic, AssetType, Amount })',
-      'POST /sell': 'Place a sell order (body: { Uic, AssetType, Amount })',
+      'POST /buy': 'Place a buy order (body: { symbol, Amount } or { Uic, AssetType, Amount })',
+      'POST /sell': 'Place a sell order (body: { symbol, Amount } or { Uic, AssetType, Amount })',
     },
   });
+});
+
+// Lookup endpoints
+app.get('/lookup', (req, res) => {
+  res.json(lookupTable);
+});
+
+app.get('/lookup/:symbol', (req, res) => {
+  const { symbol } = req.params;
+  const instrument = lookupTable[symbol];
+  
+  if (!instrument) {
+    return res.status(404).json({ 
+      error: `Symbol "${symbol}" not found in lookup.json`,
+      available: Object.keys(lookupTable),
+    });
+  }
+  
+  res.json({ symbol, ...instrument });
 });
 
 // Consolidated account info
@@ -78,11 +113,36 @@ app.get('/me', async (req, res) => {
   }
 });
 
+// Helper function to resolve symbol to Uic and AssetType
+const resolveOrderData = (orderData) => {
+  const data = { ...orderData };
+  
+  if (data.symbol) {
+    const instrument = lookupTable[data.symbol];
+    if (!instrument) {
+      return {
+        error: `Symbol "${data.symbol}" not found in lookup.json`,
+      };
+    }
+    delete data.symbol;
+    data.Uic = instrument.Uic;
+    data.AssetType = instrument.AssetType;
+  }
+  
+  return data;
+};
+
 // Buy endpoint
 app.post('/buy', async (req, res) => {
   try {
     if (!client) throw new Error('Saxo client not initialized');
-    const result = await client.buy(req.body);
+    
+    const orderData = resolveOrderData(req.body);
+    if (orderData.error) {
+      return res.status(404).json({ error: orderData.error });
+    }
+    
+    const result = await client.buy(orderData);
     res.json(result);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -93,7 +153,13 @@ app.post('/buy', async (req, res) => {
 app.post('/sell', async (req, res) => {
   try {
     if (!client) throw new Error('Saxo client not initialized');
-    const result = await client.sell(req.body);
+    
+    const orderData = resolveOrderData(req.body);
+    if (orderData.error) {
+      return res.status(404).json({ error: orderData.error });
+    }
+    
+    const result = await client.sell(orderData);
     res.json(result);
   } catch (error) {
     res.status(400).json({ error: error.message });
