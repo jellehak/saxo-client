@@ -134,10 +134,11 @@ const createClient = (token) => {
     },
 
     searchInstruments: async (keywords, assetTypes = 'FxSpot') => {
-      return request('GET', '/ref/v1/instruments', null, {
+      const result = await request('GET', '/ref/v1/instruments', null, {
         Keywords: keywords,
         AssetTypes: assetTypes,
       });
+      return result.Data || [];
     },
 
     detectAssetType: async (uic) => {
