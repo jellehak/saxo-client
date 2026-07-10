@@ -37,6 +37,25 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({
+    name: 'Saxo Trading API Server',
+    description: 'A minimal Express server for the Saxo Bank trading API',
+    version: '1.0.0',
+    endpoints: {
+      'GET /': 'This help page',
+      'GET /health': 'Health check',
+      'GET /portfolio': 'List all open positions',
+      'GET /orders': 'List all open orders',
+      'GET /balance': 'Get account balance',
+      'GET /account': 'Get account information',
+      'POST /buy': 'Place a buy order (body: { Uic, AssetType, Amount })',
+      'POST /sell': 'Place a sell order (body: { Uic, AssetType, Amount })',
+    },
+  });
+});
+
 // Buy endpoint
 app.post('/buy', async (req, res) => {
   try {
