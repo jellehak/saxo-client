@@ -3,6 +3,8 @@
 
 const GATEWAY = 'https://gateway.saxobank.com/sim/openapi';
 
+const ASSET_TYPE = ''; // FxSpot
+
 const decodeToken = (token) => {
   try {
     const parts = token.split('.');
@@ -83,7 +85,7 @@ const createClient = (token) => {
         AccountKey: clientKey,
         OrderType: 'Market',
         BuySell: 'Buy',
-        AssetType: 'FxSpot',
+        AssetType: ASSET_TYPE,
         OrderDuration: { DurationType: 'DayOrder' },
         ManualOrder: true,
         ...orderData,
@@ -95,7 +97,7 @@ const createClient = (token) => {
         AccountKey: clientKey,
         OrderType: 'Market',
         BuySell: 'Sell',
-        AssetType: 'FxSpot',
+        AssetType: ASSET_TYPE,
         OrderDuration: { DurationType: 'DayOrder' },
         ManualOrder: true,
         ...orderData,
@@ -110,20 +112,20 @@ const createClient = (token) => {
       return result.Data || [];
     },
 
-    fetchInstrument: async (uic, assetType = 'FxSpot') => {
+    fetchInstrument: async (uic, assetType = ASSET_TYPE) => {
       return request('GET', `/ref/v1/instruments/${uic}`, null, {
         AssetTypes: assetType,
       });
     },
 
-    fetchTradingConditions: async (uic, assetType = 'FxSpot') => {
+    fetchTradingConditions: async (uic, assetType = ASSET_TYPE) => {
       return request('GET', `/ref/v1/instruments/${uic}/details`, null, {
         AssetTypes: assetType,
         FieldGroups: 'MinimumTradeSize,PipSize,ContractSize',
       });
     },
 
-    fetchChart: async (uic, assetType = 'FxSpot', params = {}) => {
+    fetchChart: async (uic, assetType = ASSET_TYPE, params = {}) => {
       const url = `/chart/v3/charts`;
       return request('GET', url, null, {
         Uic: uic,
@@ -133,7 +135,7 @@ const createClient = (token) => {
       });
     },
 
-    searchInstruments: async (keywords, assetTypes = 'FxSpot') => {
+    searchInstruments: async (keywords, assetTypes = '') => {
       const result = await request('GET', '/ref/v1/instruments', null, {
         Keywords: keywords,
         AssetTypes: assetTypes,
