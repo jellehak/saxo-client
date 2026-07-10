@@ -99,6 +99,42 @@ body {
   opacity: 0.85;
 }
 
+.position-details {
+  background: var(--code-background-color);
+  padding: 0.75rem;
+  border-radius: var(--border-radius);
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.detail-label {
+  opacity: 0.7;
+  font-weight: 500;
+  min-width: 120px;
+}
+
+.detail-value {
+  font-weight: 600;
+  text-align: right;
+}
+
+.detail-value.positive {
+  color: var(--form-element-valid-border-color, #28a745);
+}
+
+.detail-value.negative {
+  color: var(--form-element-invalid-border-color, #dc3545);
+}
+
 .position-price {
   background: var(--code-background-color);
   padding: 0.75rem;

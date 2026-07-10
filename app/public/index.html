@@ -87,6 +87,40 @@
           return Number(amount);
         };
 
+        const positionAveragePrice = (position) => {
+          const price = position?.NetPositionView?.PositionsAverageBuyPrice;
+          if (price == null || Number.isNaN(Number(price))) return 'N/A';
+          return Number(price).toFixed(2);
+        };
+
+        const positionCurrentPrice = (position) => {
+          const price = position?.NetPositionView?.CurrentPrice;
+          if (price == null || Number.isNaN(Number(price))) return 'N/A';
+          return Number(price).toFixed(2);
+        };
+
+        const positionPnL = (position) => {
+          const pnl = position?.NetPositionView?.ProfitLossOnTrade;
+          if (pnl == null || Number.isNaN(Number(pnl))) return 'N/A';
+          return Number(pnl).toFixed(2);
+        };
+
+        const positionTradeCosts = (position) => {
+          const costs = position?.NetPositionView?.TradeCostsTotal;
+          if (costs == null || Number.isNaN(Number(costs))) return 'N/A';
+          return Number(costs).toFixed(2);
+        };
+
+        const positionStatus = (position) => {
+          return position?.NetPositionView?.Status || 'Unknown';
+        };
+
+        const positionExposure = (position) => {
+          const exposure = position?.NetPositionView?.Exposure;
+          if (exposure == null || Number.isNaN(Number(exposure))) return 'N/A';
+          return Number(exposure).toFixed(2);
+        };
+
         const logResult = (data) => {
           results.value = JSON.stringify(data, null, 2);
         };
@@ -351,6 +385,12 @@
           positionAssetType,
           positionName,
           positionStockAmount,
+          positionAveragePrice,
+          positionCurrentPrice,
+          positionPnL,
+          positionTradeCosts,
+          positionStatus,
+          positionExposure,
           orderId,
           orderName,
           orderStatus,
@@ -495,6 +535,35 @@
                 <p class="position-meta">
                   Quantity: {{ positionStockAmount(position) }}
                 </p>
+
+                <div class="position-details">
+                  <div class="detail-row">
+                    <span class="detail-label">Status:</span>
+                    <span class="detail-value">{{ positionStatus(position) }}</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-label">Avg. Open Price:</span>
+                    <span class="detail-value">{{ positionAveragePrice(position) }}</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-label">Current Price:</span>
+                    <span class="detail-value">{{ positionCurrentPrice(position) }}</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-label">Exposure:</span>
+                    <span class="detail-value">{{ positionExposure(position) }}</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-label">P/L:</span>
+                    <span class="detail-value" :class="Number(positionPnL(position)) >= 0 ? 'positive' : 'negative'">
+                      {{ positionPnL(position) }}
+                    </span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-label">Trade Costs:</span>
+                    <span class="detail-value">{{ positionTradeCosts(position) }}</span>
+                  </div>
+                </div>
                 
                 <div v-if="position._price" class="position-price">
                   <div class="price-item">

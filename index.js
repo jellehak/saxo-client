@@ -184,6 +184,16 @@ const createClient = (token) => {
       });
       return result.Data ? result.Data[0] : result;
     },
+
+    lookupInstrument: async (symbol) => {
+      const result = await request('GET', `/lookup/${symbol}`, null);
+      return result;
+    },
+
+    listLookupInstruments: async () => {
+      const result = await request('GET', '/lookup', null);
+      return result;
+    },
   };
 };
 
