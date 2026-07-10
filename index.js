@@ -103,10 +103,11 @@ const createClient = (token) => {
     },
 
     listPortfolio: async (fieldGroups = 'NetPositionBase,NetPositionView,DisplayAndFormat') => {
-      return request('GET', '/port/v1/netpositions', null, {
+      const result = await request('GET', '/port/v1/netpositions', null, {
         FieldGroups: fieldGroups,
         ClientKey: clientKey,
       });
+      return result.Data || [];
     },
 
     fetchInstrument: async (uic, assetType = 'FxSpot') => {
@@ -150,31 +151,35 @@ const createClient = (token) => {
     },
 
     listOrders: async (fieldGroups = 'DisplayAndFormat') => {
-      return request('GET', '/port/v1/orders/me', null, {
+      const result = await request('GET', '/port/v1/orders/me', null, {
         FieldGroups: fieldGroups,
       });
+      return result.Data || [];
     },
 
     listRecentTransactions: async (params = {}) => {
-      return request('GET', '/port/v1/closedpositions/me', null, {
+      const result = await request('GET', '/port/v1/closedpositions/me', null, {
         FieldGroups: 'DisplayAndFormat,ExchangeInfo',
         ...params,
       });
+      return result.Data || [];
     },
 
     getBalance: async (params = {}) => {
-      return request('GET', '/port/v1/balances', null, {
+      const result = await request('GET', '/port/v1/balances', null, {
         AccountKey: clientKey,
         ClientKey: clientKey,
         ...params,
       });
+      return result.Data ? result.Data[0] : result;
     },
 
     getMe: async (params = {}) => {
-      return request('GET', '/port/v1/accounts/me', null, {
+      const result = await request('GET', '/port/v1/accounts/me', null, {
         FieldGroups: 'AccountStatus,CurrencyDecimals',
         ...params,
       });
+      return result.Data ? result.Data[0] : result;
     },
   };
 };

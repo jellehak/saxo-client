@@ -200,14 +200,14 @@ async function main() {
       case 'portfolio': {
         const data = await client.listPortfolio();
         
-        if (!data.Data || data.Data.length === 0) {
+        if (!data || data.length === 0) {
           console.log('No positions found.');
           break;
         }
 
-        console.log(`\n📊 Portfolio (${data.Data.length} position${data.Data.length !== 1 ? 's' : ''})\n`);
+        console.log(`\n📊 Portfolio (${data.length} position${data.length !== 1 ? 's' : ''})\n`);
         
-        const rows = data.Data.map(pos => {
+        const rows = data.map(pos => {
           const displayFormat = pos.DisplayAndFormat;
           const base = pos.NetPositionBase;
           const view = pos.NetPositionView;
@@ -243,14 +243,14 @@ async function main() {
       case 'orders': {
         const data = await client.listOrders();
         
-        if (!data.Data || data.Data.length === 0) {
+        if (!data || data.length === 0) {
           console.log('No orders found.');
           break;
         }
 
-        console.log(`\n📋 Orders (${data.Data.length} order${data.Data.length !== 1 ? 's' : ''})\n`);
+        console.log(`\n📋 Orders (${data.length} order${data.length !== 1 ? 's' : ''})\n`);
         
-        const rows = data.Data.map(order => {
+        const rows = data.map(order => {
           const displayFormat = order.DisplayAndFormat || {};
           return {
             orderId: String(order.OrderId || '').substring(0, 10),

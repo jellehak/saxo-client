@@ -46,6 +46,7 @@ app.get('/', (req, res) => {
     endpoints: {
       'GET /': 'This help page',
       'GET /health': 'Health check',
+      'GET /me': 'Get consolidated account info (portfolio, orders, balance, account)',
       'GET /portfolio': 'List all open positions',
       'GET /orders': 'List all open orders',
       'GET /balance': 'Get account balance',
@@ -54,6 +55,27 @@ app.get('/', (req, res) => {
       'POST /sell': 'Place a sell order (body: { Uic, AssetType, Amount })',
     },
   });
+});
+
+// Consolidated account info
+app.get('/me', async (req, res) => {
+  try {
+    if (!client) throw new Error('Saxo client not initialized');
+    const [portfolio, orders, balance, account] = await Promise.all([
+      client.listPortfolio(),
+      client.listOrders(),
+      client.getBalance(),
+      client.getMe(),
+    ]);
+    res.json({
+      portfolio,
+      orders,
+      balance,
+      account,
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 });
 
 // Buy endpoint
